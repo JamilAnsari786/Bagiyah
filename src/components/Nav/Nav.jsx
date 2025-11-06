@@ -2,16 +2,15 @@ import React, { useState, useEffect } from 'react';
 import './nav.css';
 import { AiOutlineHome, AiOutlineShoppingCart } from "react-icons/ai";
 import { BiFoodMenu, BiMessageSquareDetail } from "react-icons/bi";
-import { RiRestaurantLine } from "react-icons/ri";
 import { useStore } from '../../context/StoreContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 
-const Nav = ({ currentPage, setCurrentPage }) => {
+const Nav = () => {
   const [isVisible, setIsVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
   const { cart } = useStore();
-  const cartCount = cart.length;
+  const cartCount = cart.reduce((total, item) => total + (item.quantity || 1), 0);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -41,19 +40,28 @@ const Nav = ({ currentPage, setCurrentPage }) => {
 
   const handleNavClick = (pageId) => {
     if (pageId === 'cart') {
-      navigate('/cart'); // ✅ navigate to cart page
+      navigate('/cart');
       return;
     }
 
-    // ✅ navigate back to home page for others
-    if (location.pathname !== '/') navigate('/');
-
-    setCurrentPage && setCurrentPage(pageId);
-    const targetElement = document.getElementById(pageId);
-    if (targetElement) {
-      targetElement.scrollIntoView({ behavior: 'smooth' });
+    // For home, menu, contact - navigate to home page and scroll to section
+    if (location.pathname !== '/') {
+      navigate('/');
+      // Wait for navigation to complete then scroll
+      setTimeout(() => {
+        const targetElement = document.getElementById(pageId);
+        if (targetElement) {
+          targetElement.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 100);
     } else {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      // Already on home page, just scroll
+      const targetElement = document.getElementById(pageId);
+      if (targetElement) {
+        targetElement.scrollIntoView({ behavior: 'smooth' });
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
     }
   };
 
@@ -66,6 +74,18 @@ const Nav = ({ currentPage, setCurrentPage }) => {
     setIsHovered(false);
   };
 
+  // Determine active page based on current route and scroll position
+  const getActivePage = () => {
+    if (location.pathname === '/cart') return 'cart';
+    
+    // For home page, you might want to detect which section is in view
+    // For now, we'll use a simple approach based on URL hash or default to home
+    const hash = window.location.hash.replace('#', '');
+    return hash || 'home';
+  };
+
+  const currentActivePage = getActivePage();
+
   return (
     <nav 
       className={`navigation ${isVisible ? 'visible' : 'hidden'} ${isHovered ? 'hovered' : ''}`}
@@ -75,9 +95,7 @@ const Nav = ({ currentPage, setCurrentPage }) => {
       <div className="nav-glow"></div>
       {navItems.map((item, index) => {
         const IconComponent = item.icon;
-        const isActive =
-          (item.id === 'cart' && location.pathname === '/cart') ||
-          (item.id !== 'cart' && location.pathname === '/' && currentPage === item.id);
+        const isActive = currentActivePage === item.id;
 
         return (
           <button 

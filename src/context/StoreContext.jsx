@@ -1,77 +1,99 @@
-// src/context/StoreContext.jsx
-import React, { createContext, useContext, useState } from "react";
+import { createContext, useContext, useReducer } from 'react';
 
 const StoreContext = createContext();
 
-export const StoreProvider = ({ children }) => {
-  const [cart, setCart] = useState([]);
+const initialState = {
+  cart: [],
+};
 
-  const addToCart = (item) => {
-    setCart((prev) => {
-      const existingItem = prev.find(cartItem => cartItem.id === item.id);
+function storeReducer(state, action) {
+  switch (action.type) {
+    case 'ADD_TO_CART':
+      const existingItem = state.cart.find(item => item.id === action.payload.id);
       
       if (existingItem) {
-        // If item already exists, increase quantity
-        return prev.map(cartItem =>
-          cartItem.id === item.id
-            ? { 
-                ...cartItem, 
-                quantity: (cartItem.quantity || 1) + 1,
-                totalPrice: cartItem.price * ((cartItem.quantity || 1) + 1)
-              }
-            : cartItem
-        );
+        // If item exists, increase quantity
+        return {
+          ...state,
+          cart: state.cart.map(item =>
+            item.id === action.payload.id
+              ? {
+                  ...item,
+                  quantity: (item.quantity || 1) + 1,
+                  totalPrice: item.price * ((item.quantity || 1) + 1)
+                }
+              : item
+          )
+        };
       } else {
         // If new item, add with quantity 1
-        const newItem = {
-          ...item,
-          quantity: 1,
-          totalPrice: item.price
+        return {
+          ...state,
+          cart: [...state.cart, { 
+            ...action.payload, 
+            quantity: 1, 
+            totalPrice: action.payload.price 
+          }]
         };
-        return [...prev, newItem];
       }
-    });
+      
+    case 'REMOVE_FROM_CART':
+      return { 
+        ...state, 
+        cart: state.cart.filter(item => item.id !== action.payload) 
+      };
+      
+    case 'UPDATE_QUANTITY':
+      return {
+        ...state,
+        cart: state.cart.map(item =>
+          item.id === action.payload.id
+            ? {
+                ...item,
+                quantity: action.payload.quantity,
+                totalPrice: item.price * action.payload.quantity
+              }
+            : item
+        )
+      };
+      
+    case 'CLEAR_CART':
+      return { ...state, cart: [] };
+      
+    default:
+      return state;
+  }
+}
+
+export function StoreProvider({ children }) {
+  const [state, dispatch] = useReducer(storeReducer, initialState);
+
+  // Helper functions to make it easier to use
+  const addToCart = (item) => {
+    dispatch({ type: 'ADD_TO_CART', payload: item });
   };
 
   const removeFromCart = (id) => {
-    setCart((prev) => prev.filter((item) => item.id !== id));
+    dispatch({ type: 'REMOVE_FROM_CART', payload: id });
   };
 
-  const updateQuantity = (id, newQuantity) => {
-    if (newQuantity < 1) {
-      removeFromCart(id);
-      return;
-    }
-
-    setCart((prev) =>
-      prev.map((item) =>
-        item.id === id
-          ? { 
-              ...item, 
-              quantity: newQuantity,
-              totalPrice: item.price * newQuantity
-            }
-          : item
-      )
-    );
+  const updateQuantity = (id, quantity) => {
+    dispatch({ type: 'UPDATE_QUANTITY', payload: { id, quantity } });
   };
 
-  const clearCart = () => setCart([]);
+  const clearCart = () => {
+    dispatch({ type: 'CLEAR_CART' });
+  };
 
-  // More robust calculations with fallbacks
-  const totalPrice = cart.reduce((acc, item) => {
-    const itemTotal = item.totalPrice || (item.price * (item.quantity || 1));
-    return acc + itemTotal;
-  }, 0);
-
-  const totalItems = cart.reduce((acc, item) => acc + (item.quantity || 1), 0);
+  const totalPrice = state.cart.reduce((acc, item) => acc + (item.totalPrice || item.price * (item.quantity || 1)), 0);
+  const totalItems = state.cart.reduce((acc, item) => acc + (item.quantity || 1), 0);
 
   const value = {
-    cart, 
-    addToCart, 
-    removeFromCart, 
+    cart: state.cart,
+    addToCart,
+    removeFromCart,
     updateQuantity,
-    clearCart, 
+    clearCart,
     totalPrice,
     totalItems
   };
@@ -81,14 +103,13 @@ export const StoreProvider = ({ children }) => {
       {children}
     </StoreContext.Provider>
   );
-};
+}
 
-// Custom hook with error handling
 // eslint-disable-next-line react-refresh/only-export-components
-export const useStore = () => {
+export function useStore() {
   const context = useContext(StoreContext);
   if (!context) {
     throw new Error('useStore must be used within a StoreProvider');
   }
   return context;
-};
+}
