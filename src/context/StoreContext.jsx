@@ -17,13 +17,18 @@ export const StoreProvider = ({ children }) => {
             ? { 
                 ...cartItem, 
                 quantity: (cartItem.quantity || 1) + 1,
-                totalPrice: (cartItem.price * ((cartItem.quantity || 1) + 1))
+                totalPrice: cartItem.price * ((cartItem.quantity || 1) + 1)
               }
             : cartItem
         );
       } else {
         // If new item, add with quantity 1
-        return [...prev, { ...item, quantity: 1, totalPrice: item.price }];
+        const newItem = {
+          ...item,
+          quantity: 1,
+          totalPrice: item.price
+        };
+        return [...prev, newItem];
       }
     });
   };
@@ -53,25 +58,37 @@ export const StoreProvider = ({ children }) => {
 
   const clearCart = () => setCart([]);
 
-  const totalPrice = cart.reduce((acc, item) => acc + (item.totalPrice || item.price), 0);
+  // More robust calculations with fallbacks
+  const totalPrice = cart.reduce((acc, item) => {
+    const itemTotal = item.totalPrice || (item.price * (item.quantity || 1));
+    return acc + itemTotal;
+  }, 0);
+
   const totalItems = cart.reduce((acc, item) => acc + (item.quantity || 1), 0);
 
+  const value = {
+    cart, 
+    addToCart, 
+    removeFromCart, 
+    updateQuantity,
+    clearCart, 
+    totalPrice,
+    totalItems
+  };
+
   return (
-    <StoreContext.Provider
-      value={{ 
-        cart, 
-        addToCart, 
-        removeFromCart, 
-        updateQuantity,
-        clearCart, 
-        totalPrice,
-        totalItems
-      }}
-    >
+    <StoreContext.Provider value={value}>
       {children}
     </StoreContext.Provider>
   );
 };
 
+// Custom hook with error handling
 // eslint-disable-next-line react-refresh/only-export-components
-export const useStore = () => useContext(StoreContext);
+export const useStore = () => {
+  const context = useContext(StoreContext);
+  if (!context) {
+    throw new Error('useStore must be used within a StoreProvider');
+  }
+  return context;
+};
