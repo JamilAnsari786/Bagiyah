@@ -6,7 +6,8 @@ import Home from './pages/Home/Home'
 import Cart from './pages/Cart/Cart'
 import Contact from './pages/Contact/Contact'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
-import Menu from './Pages/Menu/Menu'
+import Menuu from './pages/Menus/Menuu'
+
 
 function App() {
   return (
@@ -20,7 +21,7 @@ function App() {
               element={
                 <>
                   <Home />
-                  <Menu />
+                  <Menuu />
                   <Contact />
                 </>
               }

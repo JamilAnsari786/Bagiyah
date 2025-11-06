@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useStore } from "../../context/StoreContext";
 import bagiyaa from '../../assets/bagiya.jpg';
-import "./Menu.css";
+import "./Menus.css";
 
 const menuItems = [
   { 
@@ -17,7 +17,7 @@ const menuItems = [
   }
 ];
 
-const Menu = () => {
+const Menuu = () => {
   const { addToCart } = useStore();
   const [activeCategory, setActiveCategory] = useState("All");
   const menuRef = useRef(null);
@@ -200,4 +200,4 @@ const Menu = () => {
   );
 };
 
-export default Menu;
+export default Menuu;
